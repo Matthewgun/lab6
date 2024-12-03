@@ -2,6 +2,7 @@
 #define PRIMITIVE_H
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <memory>
 
@@ -9,51 +10,42 @@ class Primitive {
 public:
     Primitive(const std::string& name, const std::string& type) : name(name), type(type) {}
 
-    std::string getName() const {
-        return name;
-    }
+    virtual ~Primitive() = default;
 
-    std::string getType() const {
-        return type;
-    }
-
-    virtual ~Primitive() = default; // Важно для полиморфизма
-
-    virtual void draw() = 0; // Виртуальный метод для отрисовки (будет реализован в производных классах)
+    virtual void draw() = 0; // Виртуальный метод для отрисовки
     virtual std::string get() const = 0; // Чисто виртуальный метод
+    virtual std::string serialize() const = 0; // Чисто виртуальный метод для сериализации
 
-private:
-    std::string name;
-    std::string type;
-};
+    static std::shared_ptr<Primitive> deserialize(const std::string& data);
 
-class Circle : public Primitive {
-public:
-    Circle(const std::string& name, double radius) : Primitive(name, "circle"), radius(radius) {}
-    
-    void draw() override {
-        std::cout << "Отрисовка круга " << getName() << " (радиус: " << radius << ")" << std::endl;
-    }
-    
-    std::string get() const override {
-        return "круга " + getName() + " (радиус: " + std::to_string(radius) + ")";
-    }
+    // Getter methods for name and type
+    std::string getName() const { return name; }
+    std::string getType() const { return type; }
 
-private:
-    double radius;
+protected:
+    const std::string name;
+    const std::string type;
 };
 
 class Rectangle : public Primitive {
 public:
-    Rectangle(const std::string& name, double width, double height) :
-        Primitive(name, "rectangle"), width(width), height(height) {}
+    Rectangle(const std::string& name, double width, double height)
+      : Primitive(name, "rectangle"), width(width), height(height) {}
 
-    void draw() override {
-        std::cout << "Отрисовка прямоугольника " << getName() << " (ширина: " << width << ", высота: " << height << ")" << std::endl;
+    void draw() override {}
+
+    std::string get() const override { return ""; }
+
+    std::string serialize() const override { 
+        return type + ' ' + name + ' ' + std::to_string(width) + ' ' + std::to_string(height); 
     }
-    
-    std::string get() const override {
-        return "прямоугольника " + getName() + " (ширина: " + std::to_string(width) + ", высота: " + std::to_string(height) + ")";
+
+    static std::shared_ptr<Primitive> deserialize(const std::string& data) { 
+        std::istringstream iss(data); 
+        std::string name; 
+        double width, height; 
+        iss >> name >> width >> height; 
+        return std::make_shared<Rectangle>(name, width, height); 
     }
 
 private:
@@ -61,6 +53,40 @@ private:
     double height;
 };
 
-// Другие примитивы (Square, Triangle) можно добавить аналогично...
+class Circle : public Primitive {
+public:
+   Circle(const std::string& name, double radius)
+      : Primitive(name, "circle"), radius(radius) {}
+
+   void draw() override {}
+
+   std::string get() const override { return ""; }
+
+   std::string serialize() const override { 
+       return type + ' ' + name + ' ' + std::to_string(radius); 
+   }
+
+   static std::shared_ptr<Primitive> deserialize(const std::string& data) { 
+       std::istringstream iss(data); 
+       std::string name; 
+       double radius; 
+       iss >> name >> radius; 
+       return std::make_shared<Circle>(name, radius); 
+   }
+
+private:
+   double radius;
+};
+
+// Implementation of static method to deserialize based on type
+std::shared_ptr<Primitive> Primitive::deserialize(const std::string& data) {
+    if (data.find("rectangle") == 0) {
+        return Rectangle::deserialize(data.substr(9)); // Удаляем тип из строки
+    } else if (data.find("circle") == 0) {
+        return Circle::deserialize(data.substr(6)); // Удаляем тип из строки
+    }
+    
+    return nullptr; // Если тип не распознан
+}
 
 #endif // PRIMITIVE_H

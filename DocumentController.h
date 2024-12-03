@@ -1,43 +1,67 @@
 #ifndef DOCUMENTCONTROLLER_H
 #define DOCUMENTCONTROLLER_H
 
-#include <iostream>
 #include <memory>
-#include <string>
+#include <iostream>
 #include "Document.h"
 
 class DocumentController {
 public:
+    // Создание нового документа
     void createDocument() {
         std::cout << "Введите имя нового документа: ";
         std::string name;
         std::cin >> name;
         document = std::make_shared<Document>(name);
-        std::cout << "Создан документ '" << document->getName() << "'." << std::endl;
+        std::cout << "Создан документ " << document->getName() << std::endl;
     }
 
-    void addPrimitive(const std::string& type) {
+    // Импорт документа из файла
+    void importDocument(const std::string& filename) {
         if (document) {
-            if (type == "circle") {
-                double radius;
-                std::cout << "Введите радиус круга: ";
-                std::cin >> radius;
-                document->addPrimitive(std::make_shared<Circle>("Circle", radius));
-            } else if (type == "rectangle") {
-                double width, height;
-                std::cout << "Введите ширину и высоту прямоугольника: ";
-                std::cin >> width >> height;
-                document->addPrimitive(std::make_shared<Rectangle>("Rectangle", width, height));
-            }
-            // Добавьте другие типы примитивов здесь...
-            else {
-                std::cout << "Неподдерживаемый тип примитива." << std::endl;
-            }
+            document->loadFromFile(filename);
         } else {
             std::cout << "Документ не создан." << std::endl;
         }
     }
 
+    // Экспорт документа в файл
+    void exportDocument(const std::string& filename) {
+        if (document) {
+            document->saveToFile(filename);
+        } else {
+            std::cout << "Документ не создан." << std::endl;
+        }
+    }
+
+    // Добавление графического примитива в документ
+    void addPrimitive(const std::string& type) {
+        if (document) {
+            std::cout << "Введите имя примитива: ";
+            std::string name;
+            std::cin >> name;
+
+            if (type == "rectangle") {
+                double width, height;
+                std::cout << "Введите ширину: ";
+                std::cin >> width;
+                std::cout << "Введите высоту: ";
+                std::cin >> height;
+                document->addPrimitive(std::make_shared<Rectangle>(name, width, height));
+            } else if (type == "circle") {
+                double radius;
+                std::cout << "Введите радиус: ";
+                std::cin >> radius;
+                document->addPrimitive(std::make_shared<Circle>(name, radius));
+            } else {
+                std::cout << "Неподдерживаемый тип примитива.\n";
+            }
+        } else {
+            std::cout << "Документ не создан.\n";
+        }
+    }
+
+    // Удаление графического примитива из документа
     void removePrimitive(const std::string& primitiveName, const std::string& primitiveType) {
         if (document) {
             document->removePrimitive(primitiveName, primitiveType);
@@ -46,26 +70,9 @@ public:
         }
     }
 
-    void deleteDocument() {
-        if (document) {
-            document->deleteAllPrimitives(); // Удаляем все примитивы перед удалением документа
-            document.reset(); // Удаление указателя на документ
-            std::cout << "Документ удален." << std::endl;
-        } else {
-            std::cout << "Документ не создан." << std::endl;
-        }
-    }
-
-    void drawAllPrimitives() const {
-        if (document) {
-            document->drawAllPrimitives();
-        } else {
-            std::cout << "Документ не создан." << std::endl;
-        }
-    }
-
-    bool isDocumentCreated() const { // Метод для проверки существования документа
-        return document != nullptr;
+    // Проверка на существование документа
+    bool documentExists() const {
+        return document != nullptr; // Проверка на существование документа
     }
 
 private:
